@@ -108,6 +108,38 @@
     padding:12px;margin:12px 14px 0;font-size:13px;line-height:1.4}
   .banner button{margin-top:8px;background:var(--due);color:#fff;border:0;border-radius:9px;
     padding:9px 14px;font-weight:600;font-size:14px}
+  /* ----- Vista matriz (horario) ----- */
+  .matrixWrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);
+    border-radius:14px;background:var(--card);height:calc(100dvh - 152px);margin-top:4px}
+  .matrix{border-collapse:separate;border-spacing:0;width:max-content}
+  .corner{position:sticky;top:0;left:0;z-index:6;background:#fff;color:var(--ink);
+    font-size:11px;font-weight:600;padding:8px 6px;min-width:62px;width:62px;text-align:left;
+    border-right:1px solid var(--line);border-bottom:2px solid var(--line)}
+  .medhead{position:sticky;top:0;z-index:5;background:#fff;padding:7px 6px;min-width:76px;width:76px;
+    border-bottom:2px solid var(--line);border-right:1px solid var(--line);vertical-align:bottom;text-align:center}
+  .medhead.firstChild{border-left:3px solid var(--papa)}
+  .mh-child{font-size:10px;color:var(--papa);font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mh-name{font-size:13px;font-weight:700;line-height:1.15}
+  .mh-dose{font-size:11px;color:var(--muted);margin-top:1px}
+  .timecell{position:sticky;left:0;z-index:4;background:#fbfafc;padding:8px 6px;min-width:62px;width:62px;
+    border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .timecell.past{opacity:.6}
+  .tc-time{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+  .tc-day{font-size:10px;color:var(--muted);margin-top:2px}
+  .cell{padding:5px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center}
+  .cell.firstChild{border-left:3px solid #efe3f2}
+  .cell.empty{background:#fcfcfd}
+  .matrix .check{width:40px;height:40px;border-radius:10px;border:2px solid #d6d2dc;background:#fff;
+    font-size:18px;display:inline-grid;place-items:center;color:transparent;font-weight:700;padding:0}
+  .matrix .check.papa{background:var(--papa);border-color:var(--papa);color:#fff}
+  .matrix .check.mama{background:var(--mama);border-color:var(--mama);color:#fff}
+  .matrix .check.pending{opacity:.55}
+  .matrix .check.overdue{border-color:var(--due);box-shadow:0 0 0 3px var(--due-soft)}
+  .nowrow td{padding:0;border:0}
+  .nowcell{position:sticky;left:0;z-index:4;background:var(--due);color:#fff;font-size:10px;font-weight:700;
+    padding:3px 6px;text-transform:uppercase;letter-spacing:.5px}
+  .nowfill{background:var(--due);height:4px}
 </style>
 </head>
 <body>
@@ -294,60 +326,74 @@ function setSync(ok){
 /* ---------- Render ---------- */
 function render(){
   $('#whoLabel').innerHTML = identity ? ('Marcas como <b>'+identity+'</b>') : 'Sin identificar';
-  // Tabs
-  const tabs = $('#tabs'); tabs.innerHTML='';
-  if(STATE.ninos.length && !STATE.ninos.find(n=>n.id===currentNino)) currentNino = STATE.ninos[0].id;
-  STATE.ninos.forEach(n=>{
-    const b=document.createElement('button');
-    b.className='tab'+(n.id===currentNino?' active':'');
-    b.textContent=n.nombre;
-    b.onclick=()=>{currentNino=n.id;render();};
-    tabs.appendChild(b);
-  });
-  // Main
-  const main=$('#main'); main.innerHTML='';
-  const meds = STATE.remedios.filter(m=>m.nino_id===currentNino && String(m.activo)!=='false');
+  const tabs=$('#tabs'); const main=$('#main'); tabs.innerHTML=''; main.innerHTML='';
+
   if(!STATE.ninos.length){
     main.innerHTML='<div class="empty"><h3>Empecemos</h3><p>Agrega un niño en ⚙️ Ajustes y luego un remedio con “+ Remedio”.</p></div>';
     return;
   }
+
+  // Pestañas = filtro de columnas (Todos + cada niño)
+  const mkTab=(label,val)=>{ const b=document.createElement('button');
+    b.className='tab'+(currentNino===val?' active':''); b.textContent=label;
+    b.onclick=()=>{currentNino=val;render();}; tabs.appendChild(b); };
+  mkTab('Todos', null);
+  STATE.ninos.forEach(n=> mkTab(n.nombre, n.id));
+
+  // Remedios activos, ordenados por niño y luego por nombre
+  const ord={}, nom={}; STATE.ninos.forEach((n,i)=>{ord[n.id]=i; nom[n.id]=n.nombre;});
+  let meds = STATE.remedios.filter(m=>String(m.activo)!=='false');
+  if(currentNino) meds = meds.filter(m=>m.nino_id===currentNino);
+  meds.sort((a,b)=> (ord[a.nino_id]-ord[b.nino_id]) || String(a.nombre).localeCompare(b.nombre));
   if(!meds.length){
     main.innerHTML='<div class="empty"><h3>Sin remedios activos</h3><p>Toca “+ Remedio” para agregar un tratamiento.</p></div>';
     return;
   }
-  meds.forEach(med=>{
-    const card=document.createElement('div'); card.className='med';
-    const freqTxt = Number(med.frecuencia_horas)%1===0 ? Number(med.frecuencia_horas) : Number(med.frecuencia_horas);
-    card.innerHTML =
-      '<div class="medhead"><div>'+
-        '<div class="medname">'+escapeHtml(med.nombre)+'</div>'+
-        (med.dosis?'<div class="meddose">'+escapeHtml(med.dosis)+'</div>':'')+
-        '<div class="medmeta">Cada '+freqTxt+' h'+(med.fin?' · hasta '+dayLabel(new Date(med.fin)):'')+'</div>'+
-      '</div><button class="medmenu" aria-label="Editar">⋯</button></div>'+
-      '<div class="slots"></div>';
-    card.querySelector('.medmenu').onclick=()=>openMedForm(med);
-    const slotsEl=card.querySelector('.slots');
-    const times=doseTimes(med);
-    // marca la próxima dosis pendiente
-    let nextIdx = times.findIndex(t => !tomaMap[key(med.id, isoOf(t))]);
-    times.forEach((t,i)=>{
-      const iso=isoOf(t); const mk=tomaMap[key(med.id,iso)];
-      const d=new Date(t);
-      const slot=document.createElement('div');
-      slot.className='slot'+(mk?' done':'')+((!mk && i===nextIdx)?' next':'');
-      const who = mk ? mk.persona : null;
-      const cls = who==='Papá'?'papa':(who==='Mamá'?'mama':'');
-      const tag = mk ? '<span class="stag tag-'+cls+'">✓ '+who+' '+fmtTime(new Date(mk.marcado_at))+'</span>' : '';
-      slot.innerHTML =
-        '<div class="stime">'+fmtTime(d)+'</div>'+
-        '<div class="sinfo"><div class="sday">'+dayLabel(d)+'</div>'+
-          (mk?tag:'<div class="srel">'+relLabel(t)+'</div>')+'</div>'+
-        '<button class="check '+(mk?cls:'')+(mk&&mk.pending?' pending':'')+'">'+(mk?'✓':'')+'</button>';
-      slot.querySelector('.check').onclick=()=>onToggle(med, iso, !!mk);
-      slotsEl.appendChild(slot);
-    });
-    main.appendChild(card);
+
+  // Horas de cada remedio + unión ordenada (misma hora exacta => misma fila)
+  const perMed={}; const set=new Set();
+  meds.forEach(m=>{ const ts=doseTimes(m,8,60); perMed[m.id]=new Set(ts); ts.forEach(t=>set.add(t)); });
+  const times=[...set].sort((a,b)=>a-b);
+  if(!times.length){ main.innerHTML='<div class="empty"><h3>Sin dosis próximas</h3><p>Revisa la fecha de inicio de los remedios.</p></div>'; return; }
+  const now=Date.now();
+  let nowIdx=times.findIndex(t=>t>=now); if(nowIdx<0) nowIdx=times.length;
+
+  // Encabezado
+  let thead='<thead><tr><th class="corner">Hora</th>';
+  meds.forEach((m,i)=>{
+    const fc = i===0 || meds[i-1].nino_id!==m.nino_id;
+    thead+='<th class="medhead'+(fc?' firstChild':'')+'" data-id="'+m.id+'">'+
+      (currentNino?'':'<div class="mh-child">'+escapeHtml(nom[m.nino_id]||'')+'</div>')+
+      '<div class="mh-name">'+escapeHtml(m.nombre)+'</div>'+
+      (m.dosis?'<div class="mh-dose">'+escapeHtml(m.dosis)+'</div>':'')+'</th>';
   });
+  thead+='</tr></thead>';
+
+  // Cuerpo
+  let tbody='<tbody>';
+  times.forEach((t,ri)=>{
+    if(ri===nowIdx) tbody+='<tr class="nowrow"><td class="nowcell">ahora</td><td class="nowfill" colspan="'+meds.length+'"></td></tr>';
+    const d=new Date(t);
+    tbody+='<tr><td class="timecell'+(t<now?' past':'')+'"><div class="tc-time">'+fmtTime(d)+'</div><div class="tc-day">'+dayLabel(d)+'</div></td>';
+    meds.forEach((m,i)=>{
+      const fc = i===0 || meds[i-1].nino_id!==m.nino_id;
+      if(!perMed[m.id].has(t)){ tbody+='<td class="cell empty'+(fc?' firstChild':'')+'"></td>'; return; }
+      const iso=isoOf(t); const mk=tomaMap[key(m.id,iso)];
+      const who=mk?mk.persona:null; const cls=who==='Papá'?'papa':(who==='Mamá'?'mama':'');
+      const overdue=!mk && t<now;
+      tbody+='<td class="cell'+(fc?' firstChild':'')+'"><button class="check '+(mk?cls:'')+(mk&&mk.pending?' pending':'')+(overdue?' overdue':'')+'" '+
+        'data-id="'+m.id+'" data-iso="'+iso+'" data-marked="'+(mk?1:0)+'">'+(mk?'✓':'')+'</button></td>';
+    });
+    tbody+='</tr>';
+  });
+  tbody+='</tbody>';
+
+  const wrap=document.createElement('div'); wrap.className='matrixWrap';
+  const tbl=document.createElement('table'); tbl.className='matrix'; tbl.innerHTML=thead+tbody;
+  wrap.appendChild(tbl); main.appendChild(wrap);
+
+  tbl.querySelectorAll('.medhead').forEach(th=> th.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===th.dataset.id); if(m) openMedForm(m); });
+  tbl.querySelectorAll('.check').forEach(btn=> btn.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===btn.dataset.id); if(m) onToggle(m, btn.dataset.iso, btn.dataset.marked==='1'); });
 }
 function isoOf(ms){ return new Date(ms).toISOString(); }
 function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -405,7 +451,7 @@ function openMedForm(med){
   editingMedId = med ? med.id : null;
   $('#medFormTitle').textContent = med ? 'Editar remedio' : 'Nuevo remedio';
   fillNinoSelect();
-  $('#fNino').value = med ? med.nino_id : currentNino;
+  $('#fNino').value = med ? med.nino_id : (currentNino || (STATE.ninos[0]&&STATE.ninos[0].id) || '');
   $('#fNombre').value = med ? med.nombre : '';
   $('#fDosis').value = med ? (med.dosis||'') : '';
   $('#fFreq').value = med ? med.frecuencia_horas : '';
