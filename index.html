@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#792482">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Remedios de los niños</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papa:#792482; --papa-soft:#f1e4f4;
+    --mama:#1D9E75; --mama-soft:#e0f4ee;
+    --due:#c2410c; --due-soft:#fdece3;
+    --bg:#f7f5f9; --card:#ffffff; --ink:#1f2430; --muted:#6b7280; --line:#eceaf0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  header{position:sticky;top:0;z-index:20;background:var(--papa);color:#fff;
+    padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;
+    box-shadow:0 2px 10px rgba(0,0,0,.12)}
+  .htop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .htitle{font-weight:700;font-size:18px;letter-spacing:-.2px}
+  .who{font-size:12px;opacity:.9}
+  .who b{font-weight:600}
+  .iconbtn{background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:10px;
+    width:38px;height:38px;font-size:18px;display:grid;place-items:center}
+  .sync{font-size:11px;opacity:.85;margin-top:6px;display:flex;align-items:center;gap:6px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#8fe3c4}
+  .dot.bad{background:#ffb4a1}
+
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:9px 16px;border-radius:999px;border:1.5px solid var(--line);
+    background:var(--card);color:var(--muted);font-weight:600;font-size:14px}
+  .tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  main{padding:6px 14px 20px}
+  .med{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:14px;margin:12px 0;box-shadow:0 1px 2px rgba(20,20,40,.04)}
+  .medhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .medname{font-weight:700;font-size:16px}
+  .meddose{color:var(--muted);font-size:13px;margin-top:2px}
+  .medmeta{font-size:12px;color:var(--muted);margin-top:2px}
+  .medmenu{background:none;border:0;color:var(--muted);font-size:20px;padding:2px 6px}
+
+  .slots{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+  .slot{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;
+    border:1px solid var(--line);background:#fbfafc}
+  .slot.next{border-color:var(--due);background:var(--due-soft)}
+  .slot.done{background:#fafafa}
+  .stime{font-weight:700;font-size:17px;min-width:58px;font-variant-numeric:tabular-nums}
+  .sinfo{flex:1;min-width:0}
+  .sday{font-size:12px;color:var(--muted)}
+  .srel{font-size:12px;font-weight:600;color:var(--muted)}
+  .slot.next .srel{color:var(--due)}
+  .stag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+    padding:3px 8px;border-radius:999px;margin-top:3px}
+  .tag-papa{background:var(--papa-soft);color:var(--papa)}
+  .tag-mama{background:var(--mama-soft);color:var(--mama)}
+  .check{flex:0 0 auto;width:46px;height:46px;border-radius:12px;border:2px solid #d6d2dc;
+    background:#fff;font-size:22px;display:grid;place-items:center;color:transparent;font-weight:700}
+  .check.papa{background:var(--papa);border-color:var(--papa);color:#fff}
+  .check.mama{background:var(--mama);border-color:var(--mama);color:#fff}
+  .check.pending{opacity:.55}
+
+  .empty{text-align:center;color:var(--muted);padding:48px 20px}
+  .empty h3{color:var(--ink);margin:0 0 6px}
+
+  .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));
+    background:var(--papa);color:#fff;border:0;border-radius:16px;padding:14px 18px;
+    font-weight:700;font-size:15px;box-shadow:0 6px 18px rgba(121,36,130,.35);z-index:15}
+
+  .sheet{position:fixed;inset:0;z-index:40;background:rgba(15,10,20,.45);
+    display:none;align-items:flex-end}
+  .sheet.open{display:flex}
+  .panel{background:var(--card);width:100%;max-height:92vh;overflow:auto;
+    border-radius:20px 20px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+  .panel h2{margin:2px 0 14px;font-size:18px}
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+  input,select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:11px;
+    font-size:16px;font-family:inherit;background:#fff}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  .primary{width:100%;margin-top:18px;background:var(--papa);color:#fff;border:0;
+    border-radius:12px;padding:14px;font-weight:700;font-size:16px}
+  .ghost{width:100%;margin-top:8px;background:none;border:0;color:var(--muted);
+    padding:10px;font-weight:600;font-size:14px}
+  .danger{color:#b91c1c}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .seg{display:flex;gap:8px;margin-top:6px}
+  .seg button{flex:1;padding:12px;border-radius:11px;border:1.5px solid var(--line);
+    background:#fff;font-weight:600;font-size:15px}
+  .seg button.sel-papa{border-color:var(--papa);background:var(--papa-soft);color:var(--papa)}
+  .seg button.sel-mama{border-color:var(--mama);background:var(--mama-soft);color:var(--mama)}
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;
+    z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%}
+  .toast.show{opacity:1}
+  .listitem{display:flex;justify-content:space-between;align-items:center;
+    padding:12px 0;border-bottom:1px solid var(--line)}
+  .banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;
+    padding:12px;margin:12px 14px 0;font-size:13px;line-height:1.4}
+  .banner button{margin-top:8px;background:var(--due);color:#fff;border:0;border-radius:9px;
+    padding:9px 14px;font-weight:600;font-size:14px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="htop">
+    <div>
+      <div class="htitle">💊 Remedios</div>
+      <div class="who" id="whoLabel">Sin identificar</div>
+    </div>
+    <button class="iconbtn" id="btnSettings" aria-label="Ajustes">⚙️</button>
+  </div>
+  <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">Cargando…</span></div>
+</header>
+
+<div id="notifBanner" class="banner" style="display:none">
+  Activa los recordatorios para recibir aviso cuando toque cada dosis.
+  <br><button id="btnEnableNotif">Activar recordatorios</button>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<main id="main"></main>
+
+<button class="fab" id="btnAdd">+ Remedio</button>
+
+<!-- Hoja: identidad -->
+<div class="sheet" id="sheetWho">
+  <div class="panel">
+    <h2>¿Quién eres en este teléfono?</h2>
+    <p class="hint">Se guarda en este dispositivo. Cada persona usa un color: así saben quién dio cada dosis.</p>
+    <div class="seg" id="whoSeg">
+      <button data-who="Papá" class="sel-papa">Papá</button>
+      <button data-who="Mamá" class="sel-mama">Mamá</button>
+    </div>
+    <button class="primary" id="whoSave">Continuar</button>
+  </div>
+</div>
+
+<!-- Hoja: agregar/editar remedio -->
+<div class="sheet" id="sheetMed">
+  <div class="panel">
+    <h2 id="medFormTitle">Nuevo remedio</h2>
+    <label>Niño</label>
+    <select id="fNino"></select>
+    <label>Nombre del remedio</label>
+    <input id="fNombre" placeholder="Ej: Paracetamol">
+    <label>Dosis</label>
+    <input id="fDosis" placeholder="Ej: 5 ml">
+    <div class="row">
+      <div>
+        <label>Primera dosis (fecha y hora)</label>
+        <input id="fInicio" type="datetime-local">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Cada cuántas horas</label>
+        <input id="fFreq" type="number" inputmode="decimal" step="0.5" min="0.5" placeholder="8">
+      </div>
+      <div>
+        <label>Termina (opcional)</label>
+        <input id="fFin" type="datetime-local">
+      </div>
+    </div>
+    <p class="hint">El horario de cada dosis se calcula solo desde la primera dosis. Ej: primera 23:50 cada 4h → 03:50, 07:50, 11:50…</p>
+    <button class="primary" id="medSave">Guardar remedio</button>
+    <button class="ghost danger" id="medDelete" style="display:none">Eliminar este remedio</button>
+    <button class="ghost" id="medCancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- Hoja: ajustes -->
+<div class="sheet" id="sheetSettings">
+  <div class="panel">
+    <h2>Ajustes</h2>
+    <label>Soy</label>
+    <div class="seg" id="setWhoSeg">
+      <button data-who="Papá">Papá</button>
+      <button data-who="Mamá">Mamá</button>
+    </div>
+    <label style="margin-top:18px">Recordatorios</label>
+    <button class="primary" id="setNotif">Activar recordatorios en este teléfono</button>
+    <p class="hint" id="notifState"></p>
+
+    <label style="margin-top:18px">Niños</label>
+    <div id="ninoList"></div>
+    <div class="row" style="margin-top:8px">
+      <div><input id="newNino" placeholder="Agregar niño"></div>
+      <button class="iconbtn" id="addNino" style="background:var(--papa)">+</button>
+    </div>
+    <button class="ghost" id="setClose">Cerrar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+<script>
+/* ---------- Estado ---------- */
+let STATE = { ninos:[], remedios:[], tomas:[] };
+let tomaMap = {};                 // "remedioId|iso" -> {persona, marcado_at, pending}
+let currentNino = null;
+let identity = localStorage.getItem('identity') || null;
+let editingMedId = null;
+let pollTimer = null;
+
+/* ---------- Utilidades ---------- */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const key = (rid, iso) => rid + '|' + iso;
+const DAYS = ['dom','lun','mar','mié','jue','vie','sáb'];
+const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
+
+function fmtTime(d){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
+function dayLabel(d){
+  const now=new Date(), t=new Date(now); t.setDate(now.getDate()+1);
+  const y=new Date(now); y.setDate(now.getDate()-1);
+  if(sameDay(d,now))return 'hoy'; if(sameDay(d,t))return 'mañana'; if(sameDay(d,y))return 'ayer';
+  return DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
+}
+function relLabel(ms){
+  const diff=ms-Date.now(); const abs=Math.abs(diff); const m=Math.round(abs/60000);
+  const h=Math.floor(m/60), mm=m%60;
+  let s = h>0 ? (h+'h'+(mm?' '+mm+'min':'')) : (m+' min');
+  if(m<1) return diff>=0 ? 'ahora' : 'ahora';
+  return diff>=0 ? 'en '+s : 'atrasada '+s;
+}
+
+/* Genera las horas de dosis de un remedio dentro de una ventana */
+function doseTimes(med, pastHours=10, futureHours=48){
+  const start = new Date(med.inicio).getTime();
+  const freq = Number(med.frecuencia_horas)*3600*1000;
+  if(!freq || freq<=0) return [];
+  const now = Date.now();
+  const from = now - pastHours*3600*1000;
+  const to = now + futureHours*3600*1000;
+  const end = med.fin ? new Date(med.fin).getTime() : Infinity;
+  const out = [];
+  let t = start;
+  if(t < from){ const k = Math.ceil((from - t)/freq); t = t + k*freq; }
+  let guard=0;
+  while(t <= to && t <= end && guard<400){ out.push(t); t += freq; guard++; }
+  // Si aún no empieza, muestra al menos la primera dosis futura
+  if(out.length===0 && start<=end && start<=to) out.push(start);
+  return out;
+}
+
+/* ---------- Data layer (Apps Script) ---------- */
+async function api(body){
+  // POST sin cabeceras custom => petición "simple", sin preflight CORS
+  const r = await fetch(API_URL, { method:'POST', body: JSON.stringify(body) });
+  return r.json();
+}
+async function fetchState(){
+  try{
+    const r = await fetch(API_URL + '?action=state&t=' + Date.now());
+    const data = await r.json();
+    STATE = data;
+    tomaMap = {};
+    (STATE.tomas||[]).forEach(x => tomaMap[key(x.remedio_id, x.dose_time)] = {persona:x.persona, marcado_at:x.marcado_at});
+    setSync(true);
+    render();
+  }catch(e){ setSync(false); }
+}
+function setSync(ok){
+  $('#syncDot').className = 'dot' + (ok?'':' bad');
+  $('#syncTxt').textContent = ok ? ('Sincronizado · '+fmtTime(new Date())) : 'Sin conexión — reintentando';
+}
+
+/* ---------- Render ---------- */
+function render(){
+  $('#whoLabel').innerHTML = identity ? ('Marcas como <b>'+identity+'</b>') : 'Sin identificar';
+  // Tabs
+  const tabs = $('#tabs'); tabs.innerHTML='';
+  if(STATE.ninos.length && !STATE.ninos.find(n=>n.id===currentNino)) currentNino = STATE.ninos[0].id;
+  STATE.ninos.forEach(n=>{
+    const b=document.createElement('button');
+    b.className='tab'+(n.id===currentNino?' active':'');
+    b.textContent=n.nombre;
+    b.onclick=()=>{currentNino=n.id;render();};
+    tabs.appendChild(b);
+  });
+  // Main
+  const main=$('#main'); main.innerHTML='';
+  const meds = STATE.remedios.filter(m=>m.nino_id===currentNino && String(m.activo)!=='false');
+  if(!STATE.ninos.length){
+    main.innerHTML='<div class="empty"><h3>Empecemos</h3><p>Agrega un niño en ⚙️ Ajustes y luego un remedio con “+ Remedio”.</p></div>';
+    return;
+  }
+  if(!meds.length){
+    main.innerHTML='<div class="empty"><h3>Sin remedios activos</h3><p>Toca “+ Remedio” para agregar un tratamiento.</p></div>';
+    return;
+  }
+  meds.forEach(med=>{
+    const card=document.createElement('div'); card.className='med';
+    const freqTxt = Number(med.frecuencia_horas)%1===0 ? Number(med.frecuencia_horas) : Number(med.frecuencia_horas);
+    card.innerHTML =
+      '<div class="medhead"><div>'+
+        '<div class="medname">'+escapeHtml(med.nombre)+'</div>'+
+        (med.dosis?'<div class="meddose">'+escapeHtml(med.dosis)+'</div>':'')+
+        '<div class="medmeta">Cada '+freqTxt+' h'+(med.fin?' · hasta '+dayLabel(new Date(med.fin)):'')+'</div>'+
+      '</div><button class="medmenu" aria-label="Editar">⋯</button></div>'+
+      '<div class="slots"></div>';
+    card.querySelector('.medmenu').onclick=()=>openMedForm(med);
+    const slotsEl=card.querySelector('.slots');
+    const times=doseTimes(med);
+    // marca la próxima dosis pendiente
+    let nextIdx = times.findIndex(t => !tomaMap[key(med.id, isoOf(t))]);
+    times.forEach((t,i)=>{
+      const iso=isoOf(t); const mk=tomaMap[key(med.id,iso)];
+      const d=new Date(t);
+      const slot=document.createElement('div');
+      slot.className='slot'+(mk?' done':'')+((!mk && i===nextIdx)?' next':'');
+      const who = mk ? mk.persona : null;
+      const cls = who==='Papá'?'papa':(who==='Mamá'?'mama':'');
+      const tag = mk ? '<span class="stag tag-'+cls+'">✓ '+who+' '+fmtTime(new Date(mk.marcado_at))+'</span>' : '';
+      slot.innerHTML =
+        '<div class="stime">'+fmtTime(d)+'</div>'+
+        '<div class="sinfo"><div class="sday">'+dayLabel(d)+'</div>'+
+          (mk?tag:'<div class="srel">'+relLabel(t)+'</div>')+'</div>'+
+        '<button class="check '+(mk?cls:'')+(mk&&mk.pending?' pending':'')+'">'+(mk?'✓':'')+'</button>';
+      slot.querySelector('.check').onclick=()=>onToggle(med, iso, !!mk);
+      slotsEl.appendChild(slot);
+    });
+    main.appendChild(card);
+  });
+}
+function isoOf(ms){ return new Date(ms).toISOString(); }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- Marcar / desmarcar ---------- */
+async function onToggle(med, iso, isMarked){
+  if(!identity){ openWho(); return; }
+  const k=key(med.id, iso);
+  if(isMarked){
+    const mk=tomaMap[k];
+    if(mk && mk.persona!==identity && !confirm('Esta dosis la marcó '+mk.persona+'. ¿Desmarcar de todas formas?')) return;
+    delete tomaMap[k]; render();
+    const res = await api({action:'unmark', remedio_id:med.id, dose_time:iso}).catch(()=>null);
+    if(!res||!res.ok){ toast('No se pudo actualizar'); }
+    fetchState();
+  }else{
+    tomaMap[k]={persona:identity, marcado_at:new Date().toISOString(), pending:true}; render();
+    const res = await api({action:'mark', remedio_id:med.id, dose_time:iso, persona:identity}).catch(()=>null);
+    if(!res||!res.ok){ delete tomaMap[k]; render(); toast('No se pudo guardar, revisa conexión'); return; }
+    if(res.existing){ // otra persona ya la había marcado
+      tomaMap[k]={persona:res.existing.persona, marcado_at:res.existing.marcado_at};
+      toast('Ya la había marcado '+res.existing.persona);
+    }else{
+      tomaMap[k]={persona:identity, marcado_at:res.mark.marcado_at};
+    }
+    render(); fetchState();
+  }
+}
+
+/* ---------- Identidad ---------- */
+function openWho(){ $('#sheetWho').classList.add('open'); markSeg('#whoSeg', identity); }
+function markSeg(sel, who){
+  document.querySelectorAll(sel+' button').forEach(b=>{
+    b.classList.remove('sel-papa','sel-mama');
+    if(b.dataset.who===who) b.classList.add(who==='Papá'?'sel-papa':'sel-mama');
+  });
+}
+let pendingWho = null;
+document.querySelectorAll('#whoSeg button').forEach(b=> b.onclick=()=>{ pendingWho=b.dataset.who; markSeg('#whoSeg',pendingWho); });
+$('#whoSave').onclick=()=>{
+  const w = pendingWho || identity;
+  if(!w){ toast('Elige Papá o Mamá'); return; }
+  identity=w; localStorage.setItem('identity', w);
+  $('#sheetWho').classList.remove('open'); render();
+};
+
+/* ---------- Formulario de remedio ---------- */
+function fillNinoSelect(){
+  const s=$('#fNino'); s.innerHTML='';
+  STATE.ninos.forEach(n=>{ const o=document.createElement('option'); o.value=n.id; o.textContent=n.nombre; s.appendChild(o); });
+}
+function toLocalInput(iso){ const d=new Date(iso); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function openMedForm(med){
+  if(!STATE.ninos.length){ toast('Primero agrega un niño en Ajustes'); return; }
+  editingMedId = med ? med.id : null;
+  $('#medFormTitle').textContent = med ? 'Editar remedio' : 'Nuevo remedio';
+  fillNinoSelect();
+  $('#fNino').value = med ? med.nino_id : currentNino;
+  $('#fNombre').value = med ? med.nombre : '';
+  $('#fDosis').value = med ? (med.dosis||'') : '';
+  $('#fFreq').value = med ? med.frecuencia_horas : '';
+  $('#fInicio').value = med ? toLocalInput(med.inicio) : toLocalInput(new Date().toISOString());
+  $('#fFin').value = (med && med.fin) ? toLocalInput(med.fin) : '';
+  $('#medDelete').style.display = med ? 'block' : 'none';
+  $('#sheetMed').classList.add('open');
+}
+$('#btnAdd').onclick=()=>openMedForm(null);
+$('#medCancel').onclick=()=>$('#sheetMed').classList.remove('open');
+$('#medSave').onclick=async()=>{
+  const nombre=$('#fNombre').value.trim();
+  const freq=parseFloat($('#fFreq').value);
+  const inicioVal=$('#fInicio').value;
+  if(!nombre){ toast('Falta el nombre'); return; }
+  if(!freq||freq<=0){ toast('Indica cada cuántas horas'); return; }
+  if(!inicioVal){ toast('Falta la primera dosis'); return; }
+  const payload={
+    action: editingMedId?'editMed':'addMed',
+    id: editingMedId||undefined,
+    nino_id: $('#fNino').value,
+    nombre, dosis:$('#fDosis').value.trim(),
+    inicio: new Date(inicioVal).toISOString(),
+    frecuencia_horas: freq,
+    fin: $('#fFin').value ? new Date($('#fFin').value).toISOString() : ''
+  };
+  $('#medSave').disabled=true;
+  const res=await api(payload).catch(()=>null);
+  $('#medSave').disabled=false;
+  if(!res||!res.ok){ toast('No se pudo guardar'); return; }
+  $('#sheetMed').classList.remove('open'); toast('Remedio guardado'); fetchState();
+};
+$('#medDelete').onclick=async()=>{
+  if(!editingMedId||!confirm('¿Eliminar este remedio y su historial de dosis?')) return;
+  const res=await api({action:'deleteMed', id:editingMedId}).catch(()=>null);
+  if(res&&res.ok){ $('#sheetMed').classList.remove('open'); toast('Eliminado'); fetchState(); }
+  else toast('No se pudo eliminar');
+};
+
+/* ---------- Ajustes ---------- */
+$('#btnSettings').onclick=()=>{ renderNinos(); markSeg('#setWhoSeg', identity); refreshNotifState(); $('#sheetSettings').classList.add('open'); };
+$('#setClose').onclick=()=>$('#sheetSettings').classList.remove('open');
+document.querySelectorAll('#setWhoSeg button').forEach(b=> b.onclick=()=>{
+  identity=b.dataset.who; localStorage.setItem('identity',identity); markSeg('#setWhoSeg',identity); render(); toast('Ahora marcas como '+identity);
+});
+function renderNinos(){
+  const el=$('#ninoList'); el.innerHTML='';
+  STATE.ninos.forEach(n=>{
+    const d=document.createElement('div'); d.className='listitem';
+    d.innerHTML='<span>'+escapeHtml(n.nombre)+'</span><button class="medmenu danger">Eliminar</button>';
+    d.querySelector('button').onclick=async()=>{ if(confirm('¿Eliminar a '+n.nombre+' y sus remedios?')){
+      const r=await api({action:'deleteChild', id:n.id}).catch(()=>null); if(r&&r.ok){renderNinos();fetchState();} } };
+    el.appendChild(d);
+  });
+}
+$('#addNino').onclick=async()=>{
+  const nombre=$('#newNino').value.trim(); if(!nombre) return;
+  const r=await api({action:'addChild', nombre}).catch(()=>null);
+  if(r&&r.ok){ $('#newNino').value=''; await fetchState(); renderNinos(); } else toast('No se pudo agregar');
+};
+
+/* ---------- Notificaciones (FCM) ---------- */
+let swReg=null;
+async function registerSW(){
+  if(!('serviceWorker' in navigator)) return null;
+  if(!swReg) swReg=await navigator.serviceWorker.register('sw.js');
+  return swReg;
+}
+function refreshNotifState(){
+  const el=$('#notifState');
+  if(!('Notification' in window)){ el.textContent='Este navegador no soporta notificaciones.'; return; }
+  if(Notification.permission==='granted') el.textContent='Activadas en este teléfono ✓';
+  else if(Notification.permission==='denied') el.textContent='Bloqueadas. Actívalas en los ajustes del navegador/app.';
+  else el.textContent='Aún no activadas.';
+  $('#notifBanner').style.display = (Notification.permission==='granted') ? 'none' : 'block';
+}
+async function enableNotifications(){
+  if(!identity){ openWho(); return; }
+  try{
+    const reg=await registerSW();
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){ toast('Permiso no concedido'); refreshNotifState(); return; }
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const messaging=firebase.messaging();
+    const token=await messaging.getToken({ vapidKey:VAPID_KEY, serviceWorkerRegistration:reg });
+    if(!token){ toast('No se obtuvo token'); return; }
+    const r=await api({action:'registerToken', token, persona:identity});
+    if(r&&r.ok){ toast('Recordatorios activados ✓'); } else { toast('Guardado local, pero revisa backend'); }
+    refreshNotifState();
+  }catch(e){ console.error(e); toast('Error activando push (revisa Firebase/config.js)'); }
+}
+$('#btnEnableNotif').onclick=enableNotifications;
+$('#setNotif').onclick=enableNotifications;
+
+// Mensajes en primer plano (app abierta)
+function initForegroundMessages(){
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const messaging=firebase.messaging();
+    messaging.onMessage(p=>{ const n=p.notification||{}; toast('💊 '+(n.title||'Toca una dosis')); fetchState(); });
+  }catch(e){}
+}
+
+/* ---------- Arranque ---------- */
+async function boot(){
+  await registerSW().catch(()=>{});
+  initForegroundMessages();
+  if(!identity) openWho();
+  await fetchState();
+  refreshNotifState();
+  clearInterval(pollTimer);
+  pollTimer=setInterval(fetchState, 10000);           // sondeo cada 10s
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) fetchState(); });
+  setInterval(render, 30000);                          // refresca “en X min”
+}
+boot();
+</script>
+</body>
+</html>
