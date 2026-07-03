@@ -263,8 +263,11 @@ function doseTimes(med, pastHours=10, futureHours=48){
 
 /* ---------- Data layer (Apps Script) ---------- */
 async function api(body){
-  // POST sin cabeceras custom => petición "simple", sin preflight CORS
-  const r = await fetch(API_URL, { method:'POST', body: JSON.stringify(body) });
+  // Escrituras por GET: en Apps Script el POST cruza un redirect y el navegador
+  // bloquea la respuesta por CORS. El GET no tiene ese problema.
+  const p = new URLSearchParams();
+  Object.keys(body).forEach(k=>{ if(body[k]!==undefined && body[k]!==null) p.append(k, body[k]); });
+  const r = await fetch(API_URL + '?' + p.toString() + '&t=' + Date.now());
   return r.json();
 }
 async function fetchState(){
