@@ -4,7 +4,7 @@
    ============================================================ */
 
 // 1) URL de tu Web App de Apps Script (termina en /exec)
-const API_URL = https://script.google.com/macros/s/AKfycbyplDl6Ruwcr2QNLcUC6lzjS4cOBGNeUdk6afvRLZk2mMCP_23KaFkvLBNPthJwd2Emvg/exec;
+const API_URL = https://script.google.com/macros/s/AKfycbyplDl6Ruwcr2QNLcUC6lzjS4cOBGNeUdk6afvRLZk2mMCP_23KaFkvLBNPthJwd2Emvg/exec
 
 // 2) Configuración de tu proyecto Firebase (Ajustes del proyecto > Tus apps > Web)
 const FIREBASE_CONFIG = {
