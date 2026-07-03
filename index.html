@@ -128,6 +128,11 @@
   <br><button id="btnEnableNotif">Activar recordatorios</button>
 </div>
 
+<div id="installBanner" class="banner" style="display:none;background:#eef7f2;border-color:#bfe6d5;color:#12674a">
+  Instala la app para tenerla como ícono y que funcionen los recordatorios.
+  <br><button id="btnInstall" style="background:var(--mama)">Instalar app</button>
+</div>
+
 <div class="tabs" id="tabs"></div>
 <main id="main"></main>
 
@@ -503,6 +508,19 @@ function initForegroundMessages(){
     messaging.onMessage(p=>{ const n=p.notification||{}; toast('💊 '+(n.title||'Toca una dosis')); fetchState(); });
   }catch(e){}
 }
+
+/* ---------- Instalación (PWA) ---------- */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault(); deferredPrompt=e;
+  if(!window.matchMedia('(display-mode: standalone)').matches) $('#installBanner').style.display='block';
+});
+$('#btnInstall').onclick=async()=>{
+  if(!deferredPrompt){ toast('Abre el menú ⋮ de Chrome y toca “Instalar aplicación”.'); return; }
+  deferredPrompt.prompt(); await deferredPrompt.userChoice;
+  deferredPrompt=null; $('#installBanner').style.display='none';
+};
+window.addEventListener('appinstalled',()=>{ $('#installBanner').style.display='none'; toast('App instalada ✓'); });
 
 /* ---------- Arranque ---------- */
 async function boot(){
