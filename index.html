@@ -108,42 +108,46 @@
     padding:12px;margin:12px 14px 0;font-size:13px;line-height:1.4}
   .banner button{margin-top:8px;background:var(--due);color:#fff;border:0;border-radius:9px;
     padding:9px 14px;font-weight:600;font-size:14px}
-  /* ----- Vista matriz (horario) ----- */
+  /* ----- Vista matriz (horario) con CSS Grid ----- */
   .matrixWrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);
     border-radius:14px;background:var(--card);height:calc(100dvh - 152px);margin-top:4px}
-  .matrix{border-collapse:separate;border-spacing:0;table-layout:fixed}
-  .matrix col.timecol{width:62px}
-  .matrix col.medcol{width:84px}
-  .corner{position:sticky;top:0;left:0;z-index:6;background:#fff;color:var(--ink);
-    font-size:11px;font-weight:600;padding:8px 6px;min-width:62px;width:62px;text-align:left;
-    border-right:1px solid var(--line);border-bottom:2px solid var(--line)}
-  .matrix th,.matrix td{box-sizing:border-box}
-  .medhead{position:sticky;top:0;z-index:5;background:#fff;padding:6px 5px;min-width:84px;width:84px;height:66px;
-    border-bottom:2px solid var(--line);border-right:1px solid var(--line);vertical-align:bottom;text-align:center;white-space:normal}
-  .medhead.firstChild{border-left:3px solid var(--papa)}
+  .grid{display:grid;width:max-content;align-items:stretch}
+  .grid>div{border-bottom:1px solid var(--line);border-right:1px solid var(--line);box-sizing:border-box}
+
+  /* Esquina "Hora": fija a la izquierda pero NO arriba (se desliza al bajar) */
+  .g-corner{position:sticky;left:0;z-index:4;background:#fff;color:var(--muted);
+    font-size:11px;font-weight:600;padding:8px 6px;display:flex;align-items:flex-end}
+
+  /* Encabezados de remedio: fijos arriba */
+  .g-medhead{position:sticky;top:0;z-index:5;background:#fff;padding:6px 5px;height:66px;
+    border-bottom:2px solid var(--line);text-align:center;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+  .g-medhead.firstChild{border-left:3px solid var(--papa)}
   .mh-child{font-size:10px;color:var(--papa);font-weight:700;text-transform:uppercase;letter-spacing:.3px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .mh-name{font-size:12.5px;font-weight:700;line-height:1.15;overflow-wrap:anywhere;word-break:break-word;
+    max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mh-name{font-size:12.5px;font-weight:700;line-height:1.15;overflow-wrap:anywhere;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .mh-dose{font-size:10.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .timecell{position:sticky;left:0;z-index:4;background:#fbfafc;padding:8px 6px;min-width:62px;width:62px;
-    border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .timecell.past{opacity:.6}
+  .mh-dose{font-size:10.5px;color:var(--muted);margin-top:1px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* Columna de horas: fija a la izquierda */
+  .g-time{position:sticky;left:0;z-index:3;background:#fbfafc;padding:8px 6px}
+  .g-time.past{opacity:.6}
   .tc-time{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
   .tc-day{font-size:10px;color:var(--muted);margin-top:2px}
-  .cell{padding:5px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center}
-  .cell.firstChild{border-left:3px solid #efe3f2}
-  .cell.empty{background:#fcfcfd}
-  .matrix .check{width:40px;height:40px;border-radius:10px;border:2px solid #d6d2dc;background:#fff;
+
+  .g-cell{padding:5px;display:flex;align-items:center;justify-content:center}
+  .g-cell.firstChild{border-left:3px solid #efe3f2}
+  .g-cell.empty{background:#fcfcfd}
+  .grid .check{width:40px;height:40px;border-radius:10px;border:2px solid #d6d2dc;background:#fff;
     font-size:18px;display:inline-grid;place-items:center;color:transparent;font-weight:700;padding:0}
-  .matrix .check.papa{background:var(--papa);border-color:var(--papa);color:#fff}
-  .matrix .check.mama{background:var(--mama);border-color:var(--mama);color:#fff}
-  .matrix .check.pending{opacity:.55}
-  .matrix .check.overdue{border-color:var(--due);box-shadow:0 0 0 3px var(--due-soft)}
-  .nowrow td{padding:0;border:0}
-  .nowcell{position:sticky;left:0;z-index:4;background:var(--due);color:#fff;font-size:10px;font-weight:700;
-    padding:3px 6px;text-transform:uppercase;letter-spacing:.5px}
-  .nowfill{background:var(--due);height:4px}
+  .grid .check.papa{background:var(--papa);border-color:var(--papa);color:#fff}
+  .grid .check.mama{background:var(--mama);border-color:var(--mama);color:#fff}
+  .grid .check.pending{opacity:.55}
+  .grid .check.overdue{border-color:var(--due);box-shadow:0 0 0 3px var(--due-soft)}
+
+  /* Línea "ahora" */
+  .g-now-label{position:sticky;left:0;z-index:3;background:var(--due);color:#fff;font-size:10px;font-weight:700;
+    padding:3px 6px;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;border-right:0}
+  .g-now-bar{background:var(--due);border:0}
 </style>
 </head>
 <body>
@@ -362,45 +366,47 @@ function render(){
   const now=Date.now();
   let nowIdx=times.findIndex(t=>t>=now); if(nowIdx<0) nowIdx=times.length;
 
-  // Encabezado
-  let thead='<thead><tr><th class="corner">Hora</th>';
+  // Construcción con CSS Grid (columnas de ancho fijo y alineación garantizada)
+  const COLW=84, TIMEW=62;
+  const grid=document.createElement('div'); grid.className='grid';
+  grid.style.gridTemplateColumns = TIMEW+'px repeat('+meds.length+','+COLW+'px)';
+
+  const add=(html)=>{ const tmp=document.createElement('template'); tmp.innerHTML=html.trim(); grid.appendChild(tmp.content.firstChild); };
+
+  // Fila de encabezado
+  add('<div class="g-corner">Hora</div>');
   meds.forEach((m,i)=>{
     const fc = i===0 || meds[i-1].nino_id!==m.nino_id;
-    thead+='<th class="medhead'+(fc?' firstChild':'')+'" data-id="'+m.id+'">'+
+    add('<div class="g-medhead'+(fc?' firstChild':'')+'" data-id="'+m.id+'">'+
       (currentNino?'':'<div class="mh-child">'+escapeHtml(nom[m.nino_id]||'')+'</div>')+
       '<div class="mh-name">'+escapeHtml(m.nombre)+'</div>'+
-      (m.dosis?'<div class="mh-dose">'+escapeHtml(m.dosis)+'</div>':'')+'</th>';
+      (m.dosis?'<div class="mh-dose">'+escapeHtml(m.dosis)+'</div>':'')+'</div>');
   });
-  thead+='</tr></thead>';
 
-  // Cuerpo
-  let tbody='<tbody>';
+  // Filas por hora
   times.forEach((t,ri)=>{
-    if(ri===nowIdx) tbody+='<tr class="nowrow"><td class="nowcell">ahora</td><td class="nowfill" colspan="'+meds.length+'"></td></tr>';
+    if(ri===nowIdx){
+      add('<div class="g-now-label">ahora</div>');
+      add('<div class="g-now-bar" style="grid-column:2 / -1"></div>');
+    }
     const d=new Date(t);
-    tbody+='<tr><td class="timecell'+(t<now?' past':'')+'"><div class="tc-time">'+fmtTime(d)+'</div><div class="tc-day">'+dayLabel(d)+'</div></td>';
+    add('<div class="g-time'+(t<now?' past':'')+'"><div class="tc-time">'+fmtTime(d)+'</div><div class="tc-day">'+dayLabel(d)+'</div></div>');
     meds.forEach((m,i)=>{
       const fc = i===0 || meds[i-1].nino_id!==m.nino_id;
-      if(!perMed[m.id].has(t)){ tbody+='<td class="cell empty'+(fc?' firstChild':'')+'"></td>'; return; }
+      if(!perMed[m.id].has(t)){ add('<div class="g-cell empty'+(fc?' firstChild':'')+'"></div>'); return; }
       const iso=isoOf(t); const mk=tomaMap[key(m.id,iso)];
       const who=mk?mk.persona:null; const cls=who==='Papá'?'papa':(who==='Mamá'?'mama':'');
       const overdue=!mk && t<now;
-      tbody+='<td class="cell'+(fc?' firstChild':'')+'"><button class="check '+(mk?cls:'')+(mk&&mk.pending?' pending':'')+(overdue?' overdue':'')+'" '+
-        'data-id="'+m.id+'" data-iso="'+iso+'" data-marked="'+(mk?1:0)+'">'+(mk?'✓':'')+'</button></td>';
+      add('<div class="g-cell'+(fc?' firstChild':'')+'"><button class="check '+(mk?cls:'')+(mk&&mk.pending?' pending':'')+(overdue?' overdue':'')+'" '+
+        'data-id="'+m.id+'" data-iso="'+iso+'" data-marked="'+(mk?1:0)+'">'+(mk?'✓':'')+'</button></div>');
     });
-    tbody+='</tr>';
   });
-  tbody+='</tbody>';
 
   const wrap=document.createElement('div'); wrap.className='matrixWrap';
-  const tbl=document.createElement('table'); tbl.className='matrix';
-  const colgroup='<colgroup><col class="timecol">'+meds.map(()=>'<col class="medcol">').join('')+'</colgroup>';
-  tbl.innerHTML=colgroup+thead+tbody;
-  tbl.style.width=(62+meds.length*84)+'px';
-  wrap.appendChild(tbl); main.appendChild(wrap);
+  wrap.appendChild(grid); main.appendChild(wrap);
 
-  tbl.querySelectorAll('.medhead').forEach(th=> th.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===th.dataset.id); if(m) openMedForm(m); });
-  tbl.querySelectorAll('.check').forEach(btn=> btn.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===btn.dataset.id); if(m) onToggle(m, btn.dataset.iso, btn.dataset.marked==='1'); });
+  grid.querySelectorAll('.g-medhead').forEach(el=> el.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===el.dataset.id); if(m) openMedForm(m); });
+  grid.querySelectorAll('.check').forEach(btn=> btn.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===btn.dataset.id); if(m) onToggle(m, btn.dataset.iso, btn.dataset.marked==='1'); });
 }
 function isoOf(ms){ return new Date(ms).toISOString(); }
 function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
