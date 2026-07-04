@@ -111,12 +111,14 @@
   /* ----- Vista matriz (horario) ----- */
   .matrixWrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);
     border-radius:14px;background:var(--card);height:calc(100dvh - 152px);margin-top:4px}
-  .matrix{border-collapse:separate;border-spacing:0;width:max-content}
+  .matrix{border-collapse:separate;border-spacing:0;table-layout:fixed}
+  .matrix col.timecol{width:62px}
+  .matrix col.medcol{width:84px}
   .corner{position:sticky;top:0;left:0;z-index:6;background:#fff;color:var(--ink);
     font-size:11px;font-weight:600;padding:8px 6px;min-width:62px;width:62px;text-align:left;
     border-right:1px solid var(--line);border-bottom:2px solid var(--line)}
   .matrix th,.matrix td{box-sizing:border-box}
-  .medhead{position:sticky;top:0;z-index:5;background:#fff;padding:6px 5px;min-width:80px;width:80px;height:66px;
+  .medhead{position:sticky;top:0;z-index:5;background:#fff;padding:6px 5px;min-width:84px;width:84px;height:66px;
     border-bottom:2px solid var(--line);border-right:1px solid var(--line);vertical-align:bottom;text-align:center;white-space:normal}
   .medhead.firstChild{border-left:3px solid var(--papa)}
   .mh-child{font-size:10px;color:var(--papa);font-weight:700;text-transform:uppercase;letter-spacing:.3px;
@@ -391,7 +393,10 @@ function render(){
   tbody+='</tbody>';
 
   const wrap=document.createElement('div'); wrap.className='matrixWrap';
-  const tbl=document.createElement('table'); tbl.className='matrix'; tbl.innerHTML=thead+tbody;
+  const tbl=document.createElement('table'); tbl.className='matrix';
+  const colgroup='<colgroup><col class="timecol">'+meds.map(()=>'<col class="medcol">').join('')+'</colgroup>';
+  tbl.innerHTML=colgroup+thead+tbody;
+  tbl.style.width=(62+meds.length*84)+'px';
   wrap.appendChild(tbl); main.appendChild(wrap);
 
   tbl.querySelectorAll('.medhead').forEach(th=> th.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===th.dataset.id); if(m) openMedForm(m); });
