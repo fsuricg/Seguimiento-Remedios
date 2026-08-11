@@ -303,8 +303,9 @@ function doseTimes(med, pastHours=10, futureHours=48){
   if(t < from){ const k = Math.ceil((from - t)/freq); t = t + k*freq; }
   let guard=0;
   while(t <= to && t <= end && guard<400){ out.push(t); t += freq; guard++; }
-  // Si aún no empieza, muestra al menos la primera dosis futura
-  if(out.length===0 && start<=end && start<=to) out.push(start);
+  // Si el tratamiento aún no empieza, mostrar al menos su primera dosis (futura).
+  // Si ya terminó, no debe inyectar nada.
+  if(out.length===0 && start<=end && start<=to && start>=now) out.push(start);
   return out;
 }
 
@@ -383,11 +384,21 @@ function render(){
 
   // Horas de cada remedio + unión ordenada (misma hora exacta => misma fila)
   const perMed={}; const set=new Set();
-  meds.forEach(m=>{ const ts=doseTimes(m,8,60); perMed[m.id]=new Set(ts); ts.forEach(t=>set.add(t)); });
-  const times=[...set].sort((a,b)=>a-b);
-  if(!times.length){ lastSig=null; renderTabs(tabs, nom);
-    main.innerHTML='<div class="empty"><h3>Sin dosis próximas</h3><p>Revisa la fecha de inicio de los remedios.</p></div>'; return; }
+  meds.forEach(m=>{ const ts=doseTimes(m,24,60); perMed[m.id]=new Set(ts); ts.forEach(t=>set.add(t)); });
+  const all=[...set].sort((a,b)=>a-b);
   const now=Date.now();
+
+  // Del pasado solo dejamos filas con alguna dosis SIN marcar (atrasadas).
+  // Las ya dadas desaparecen para no ocupar pantalla; quedan en el historial del Sheet.
+  const times=all.filter(t=>{
+    if(t>=now) return true;
+    return meds.some(m=> perMed[m.id].has(t) && !tomaMap[key(m.id, isoOf(t))]);
+  });
+  // Quitamos columnas sin ninguna dosis visible (tratamientos ya terminados)
+  meds = meds.filter(m=> times.some(t=> perMed[m.id].has(t)));
+
+  if(!times.length || !meds.length){ lastSig=null; renderTabs(tabs, nom);
+    main.innerHTML='<div class="empty"><h3>Todo al día</h3><p>No hay dosis atrasadas ni próximas. Toca “+ Remedio” para agregar un tratamiento.</p></div>'; return; }
   let nowIdx=times.findIndex(t=>t>=now); if(nowIdx<0) nowIdx=times.length;
 
   // Firma de la ESTRUCTURA. Si no cambió, solo refrescamos las casillas.
