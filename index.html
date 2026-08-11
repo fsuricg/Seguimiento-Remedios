@@ -110,7 +110,8 @@
     padding:9px 14px;font-weight:600;font-size:14px}
   /* ----- Vista matriz (horario) con CSS Grid ----- */
   .matrixWrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);
-    border-radius:14px;background:var(--card);height:calc(100dvh - 152px);margin-top:4px}
+    border-radius:14px;background:var(--card);height:calc(100dvh - 152px);margin-top:4px;
+    will-change:transform;transform:translateZ(0)}
   .grid{display:grid;width:max-content;align-items:stretch}
   .grid>div{border-bottom:1px solid var(--line);border-right:1px solid var(--line);box-sizing:border-box}
 
@@ -129,7 +130,8 @@
   .mh-dose{font-size:10.5px;color:var(--muted);margin-top:1px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   /* Columna de horas: fija a la izquierda */
-  .g-time{position:sticky;left:0;z-index:3;background:#fbfafc;padding:8px 6px}
+  .g-time{position:sticky;left:0;z-index:3;background:#fbfafc;padding:8px 6px;
+    box-shadow:1px 0 0 var(--line)}
   .g-time.past{opacity:.6}
   .tc-time{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
   .tc-day{font-size:10px;color:var(--muted);margin-top:2px}
@@ -332,28 +334,49 @@ function setSync(ok){
 }
 
 /* ---------- Render ---------- */
+let lastSig=null, gridRef=null, wrapRef=null, cellIndex={};
+let isScrolling=false, scrollTimer=null, renderPending=false;
+
+/* Actualiza SOLO el estado de las casillas, sin tocar la estructura del DOM.
+   Así el scroll nunca se reinicia y no hay repintado de la grilla. */
+function updateChecks(){
+  const now=Date.now();
+  Object.keys(cellIndex).forEach(k=>{
+    const btn=cellIndex[k]; if(!btn) return;
+    const mk=tomaMap[k];
+    const t=Date.parse(btn.dataset.iso);
+    const who=mk?mk.persona:null;
+    const cls=who==='Papá'?'papa':(who==='Mamá'?'mama':'');
+    const overdue=!mk && t<now;
+    const want='check'+(mk?' '+cls:'')+(mk&&mk.pending?' pending':'')+(overdue?' overdue':'');
+    if(btn.className!==want) btn.className=want;
+    const txt=mk?'✓':'';
+    if(btn.textContent!==txt) btn.textContent=txt;
+    const md=mk?'1':'0';
+    if(btn.dataset.marked!==md) btn.dataset.marked=md;
+  });
+}
+
 function render(){
   $('#whoLabel').innerHTML = identity ? ('Marcas como <b>'+identity+'</b>') : 'Sin identificar';
-  const tabs=$('#tabs'); const main=$('#main'); tabs.innerHTML=''; main.innerHTML='';
+  const tabs=$('#tabs'); const main=$('#main');
+
+  // Si el usuario está desplazando, posponer cualquier reconstrucción
+  if(isScrolling){ renderPending=true; updateChecks(); return; }
 
   if(!STATE.ninos.length){
-    main.innerHTML='<div class="empty"><h3>Empecemos</h3><p>Agrega un niño en ⚙️ Ajustes y luego un remedio con “+ Remedio”.</p></div>';
+    lastSig=null; tabs.innerHTML=''; main.innerHTML='<div class="empty"><h3>Empecemos</h3><p>Agrega un niño en ⚙️ Ajustes y luego un remedio con “+ Remedio”.</p></div>';
     return;
   }
-
-  // Pestañas = filtro de columnas (Todos + cada niño)
-  const mkTab=(label,val)=>{ const b=document.createElement('button');
-    b.className='tab'+(currentNino===val?' active':''); b.textContent=label;
-    b.onclick=()=>{currentNino=val;render();}; tabs.appendChild(b); };
-  mkTab('Todos', null);
-  STATE.ninos.forEach(n=> mkTab(n.nombre, n.id));
 
   // Remedios activos, ordenados por niño y luego por nombre
   const ord={}, nom={}; STATE.ninos.forEach((n,i)=>{ord[n.id]=i; nom[n.id]=n.nombre;});
   let meds = STATE.remedios.filter(m=>String(m.activo)!=='false');
   if(currentNino) meds = meds.filter(m=>m.nino_id===currentNino);
   meds.sort((a,b)=> (ord[a.nino_id]-ord[b.nino_id]) || String(a.nombre).localeCompare(b.nombre));
+
   if(!meds.length){
+    lastSig=null; renderTabs(tabs, nom);
     main.innerHTML='<div class="empty"><h3>Sin remedios activos</h3><p>Toca “+ Remedio” para agregar un tratamiento.</p></div>';
     return;
   }
@@ -362,14 +385,27 @@ function render(){
   const perMed={}; const set=new Set();
   meds.forEach(m=>{ const ts=doseTimes(m,8,60); perMed[m.id]=new Set(ts); ts.forEach(t=>set.add(t)); });
   const times=[...set].sort((a,b)=>a-b);
-  if(!times.length){ main.innerHTML='<div class="empty"><h3>Sin dosis próximas</h3><p>Revisa la fecha de inicio de los remedios.</p></div>'; return; }
+  if(!times.length){ lastSig=null; renderTabs(tabs, nom);
+    main.innerHTML='<div class="empty"><h3>Sin dosis próximas</h3><p>Revisa la fecha de inicio de los remedios.</p></div>'; return; }
   const now=Date.now();
   let nowIdx=times.findIndex(t=>t>=now); if(nowIdx<0) nowIdx=times.length;
 
-  // Construcción con CSS Grid (columnas de ancho fijo y alineación garantizada)
+  // Firma de la ESTRUCTURA. Si no cambió, solo refrescamos las casillas.
+  const sig=JSON.stringify([currentNino, nowIdx, times,
+    meds.map(m=>[m.id, m.nombre, m.dosis, m.nino_id]), STATE.ninos.map(n=>[n.id,n.nombre])]);
+  if(sig===lastSig && gridRef && gridRef.isConnected){ updateChecks(); return; }
+  lastSig=sig;
+
+  // Reconstrucción: preservar la posición de scroll
+  const prevLeft = wrapRef && wrapRef.isConnected ? wrapRef.scrollLeft : 0;
+  const prevTop  = wrapRef && wrapRef.isConnected ? wrapRef.scrollTop  : 0;
+
+  renderTabs(tabs, nom);
+
   const COLW=84, TIMEW=62;
   const grid=document.createElement('div'); grid.className='grid';
   grid.style.gridTemplateColumns = TIMEW+'px repeat('+meds.length+','+COLW+'px)';
+  cellIndex={};
 
   const add=(html)=>{ const tmp=document.createElement('template'); tmp.innerHTML=html.trim(); grid.appendChild(tmp.content.firstChild); };
 
@@ -397,16 +433,42 @@ function render(){
       const iso=isoOf(t); const mk=tomaMap[key(m.id,iso)];
       const who=mk?mk.persona:null; const cls=who==='Papá'?'papa':(who==='Mamá'?'mama':'');
       const overdue=!mk && t<now;
-      add('<div class="g-cell'+(fc?' firstChild':'')+'"><button class="check '+(mk?cls:'')+(mk&&mk.pending?' pending':'')+(overdue?' overdue':'')+'" '+
+      add('<div class="g-cell'+(fc?' firstChild':'')+'"><button class="check'+(mk?' '+cls:'')+(mk&&mk.pending?' pending':'')+(overdue?' overdue':'')+'" '+
         'data-id="'+m.id+'" data-iso="'+iso+'" data-marked="'+(mk?1:0)+'">'+(mk?'✓':'')+'</button></div>');
     });
   });
 
   const wrap=document.createElement('div'); wrap.className='matrixWrap';
-  wrap.appendChild(grid); main.appendChild(wrap);
+  wrap.appendChild(grid);
+  main.innerHTML=''; main.appendChild(wrap);
+  gridRef=grid; wrapRef=wrap;
+
+  // Índice de casillas para las actualizaciones en sitio
+  grid.querySelectorAll('.check').forEach(btn=>{ cellIndex[key(btn.dataset.id, btn.dataset.iso)]=btn; });
 
   grid.querySelectorAll('.g-medhead').forEach(el=> el.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===el.dataset.id); if(m) openMedForm(m); });
   grid.querySelectorAll('.check').forEach(btn=> btn.onclick=()=>{ const m=STATE.remedios.find(x=>x.id===btn.dataset.id); if(m) onToggle(m, btn.dataset.iso, btn.dataset.marked==='1'); });
+
+  // Restaurar scroll; si es la primera vez, dejar la línea "ahora" a la vista
+  if(prevLeft||prevTop){ wrap.scrollLeft=prevLeft; wrap.scrollTop=prevTop; }
+  else{ const nb=grid.querySelector('.g-now-label'); if(nb) wrap.scrollTop=Math.max(0, nb.offsetTop-140); }
+
+  // Mientras el usuario desplaza, no reconstruimos
+  wrap.addEventListener('scroll',()=>{
+    isScrolling=true; clearTimeout(scrollTimer);
+    scrollTimer=setTimeout(()=>{ isScrolling=false; if(renderPending){ renderPending=false; render(); } }, 900);
+  }, {passive:true});
+}
+
+function renderTabs(tabs, nom){
+  const want=JSON.stringify([currentNino, STATE.ninos.map(n=>n.id+n.nombre)]);
+  if(tabs.dataset.sig===want) return;   // no rehacer pestañas sin necesidad
+  tabs.dataset.sig=want; tabs.innerHTML='';
+  const mkTab=(label,val)=>{ const b=document.createElement('button');
+    b.className='tab'+(currentNino===val?' active':''); b.textContent=label;
+    b.onclick=()=>{currentNino=val; lastSig=null; render();}; tabs.appendChild(b); };
+  mkTab('Todos', null);
+  STATE.ninos.forEach(n=> mkTab(n.nombre, n.id));
 }
 function isoOf(ms){ return new Date(ms).toISOString(); }
 function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -591,7 +653,7 @@ async function boot(){
   clearInterval(pollTimer);
   pollTimer=setInterval(fetchState, 10000);           // sondeo cada 10s
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) fetchState(); });
-  setInterval(render, 30000);                          // refresca “en X min”
+  setInterval(render, 30000);                          // mueve la línea "ahora" (sin reconstruir si nada cambió)
 }
 boot();
 </script>
