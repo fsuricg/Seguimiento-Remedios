@@ -671,6 +671,12 @@ function monthLabel(a,b){
   const mb=MONTHS[B.getMonth()]+' '+B.getFullYear();
   return ma===mb ? ma : (MONTHS[A.getMonth()]+'–'+MONTHS[B.getMonth()]+' '+B.getFullYear());
 }
+function freqLabel(h){
+  h=Number(h); if(!h||h<=0) return '—';
+  if(h<1) return 'cada '+Math.round(h*60)+' min';
+  const txt = h%1===0 ? String(h) : String(h).replace('.',',');
+  return 'cada '+txt+' h';
+}
 function buildHistory(){
   const nom={}; STATE.ninos.forEach(n=> nom[n.id]=n.nombre);
   const byMed={};
@@ -684,7 +690,7 @@ function buildHistory(){
     const first=ts[0], last=ts[ts.length-1];
     const dias=Math.round((startOfDay(last)-startOfDay(first))/86400000)+1;
     return { nombre:m.nombre, dosis:m.dosis||'—', nino:nom[m.nino_id]||'—',
-             mes:monthLabel(first,last), dias, n:ts.length, first };
+             mes:monthLabel(first,last), dias, freq:freqLabel(m.frecuencia_horas), first };
   }).filter(Boolean).sort((a,b)=> b.first-a.first);
 }
 function openHistory(){
@@ -700,7 +706,7 @@ function openHistory(){
           '<span class="hchip child">'+escapeHtml(r.nino)+'</span>'+
           '<span class="hchip">'+r.mes+'</span>'+
           '<span class="hchip days">'+r.dias+(r.dias===1?' día':' días')+'</span>'+
-          '<span class="hchip">'+r.n+(r.n===1?' dosis':' dosis')+'</span>'+
+          '<span class="hchip">'+r.freq+'</span>'+
         '</div>';
       el.appendChild(d);
     });
