@@ -150,6 +150,16 @@
   .g-now-label{position:sticky;left:0;z-index:3;background:var(--due);color:#fff;font-size:10px;font-weight:700;
     padding:3px 6px;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;border-right:0}
   .g-now-bar{background:var(--due);border:0}
+  /* ----- Historial ----- */
+  .hcard{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:9px;background:#fff}
+  .hcard .h-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .hcard .h-name{font-weight:700;font-size:15px}
+  .hcard .h-dose{font-size:13px;color:var(--muted);white-space:nowrap}
+  .hcard .h-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .hchip{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f3f1f6;color:var(--muted)}
+  .hchip.child{background:var(--papa-soft);color:var(--papa)}
+  .hchip.days{background:var(--mama-soft);color:var(--mama)}
+  .hnote{font-size:12px;color:var(--muted);margin:2px 0 12px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -160,7 +170,10 @@
       <div class="htitle">💊 Remedios</div>
       <div class="who" id="whoLabel">Sin identificar</div>
     </div>
-    <button class="iconbtn" id="btnSettings" aria-label="Ajustes">⚙️</button>
+    <div style="display:flex;gap:8px">
+      <button class="iconbtn" id="btnHist" aria-label="Historial">🗂️</button>
+      <button class="iconbtn" id="btnSettings" aria-label="Ajustes">⚙️</button>
+    </div>
   </div>
   <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">Cargando…</span></div>
 </header>
@@ -223,6 +236,15 @@
     <button class="primary" id="medSave">Guardar remedio</button>
     <button class="ghost danger" id="medDelete" style="display:none">Eliminar este remedio</button>
     <button class="ghost" id="medCancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- Hoja: historial -->
+<div class="sheet" id="sheetHist">
+  <div class="panel">
+    <h2>Historial de remedios dados</h2>
+    <div id="histList"></div>
+    <button class="ghost" id="histClose">Cerrar</button>
   </div>
 </div>
 
@@ -640,6 +662,53 @@ function initForegroundMessages(){
     messaging.onMessage(p=>{ const n=p.notification||{}; toast('💊 '+(n.title||'Toca una dosis')); fetchState(); });
   }catch(e){}
 }
+
+/* ---------- Historial ---------- */
+function startOfDay(ms){ const d=new Date(ms); d.setHours(0,0,0,0); return d.getTime(); }
+function monthLabel(a,b){
+  const A=new Date(a), B=new Date(b);
+  const ma=MONTHS[A.getMonth()]+' '+A.getFullYear();
+  const mb=MONTHS[B.getMonth()]+' '+B.getFullYear();
+  return ma===mb ? ma : (MONTHS[A.getMonth()]+'–'+MONTHS[B.getMonth()]+' '+B.getFullYear());
+}
+function buildHistory(){
+  const nom={}; STATE.ninos.forEach(n=> nom[n.id]=n.nombre);
+  const byMed={};
+  (STATE.tomas||[]).forEach(t=>{
+    const ms=Date.parse(t.dose_time); if(isNaN(ms)) return;
+    (byMed[t.remedio_id]=byMed[t.remedio_id]||[]).push(ms);
+  });
+  return STATE.remedios.map(m=>{
+    const ts=(byMed[m.id]||[]).sort((a,b)=>a-b);
+    if(!ts.length) return null;                       // solo lo efectivamente dado
+    const first=ts[0], last=ts[ts.length-1];
+    const dias=Math.round((startOfDay(last)-startOfDay(first))/86400000)+1;
+    return { nombre:m.nombre, dosis:m.dosis||'—', nino:nom[m.nino_id]||'—',
+             mes:monthLabel(first,last), dias, n:ts.length, first };
+  }).filter(Boolean).sort((a,b)=> b.first-a.first);
+}
+function openHistory(){
+  const rows=buildHistory(); const el=$('#histList'); el.innerHTML='';
+  if(!rows.length){ el.innerHTML='<p class="hint">Todavía no hay dosis marcadas.</p>'; }
+  else{
+    el.innerHTML='<p class="hnote">Un registro por tratamiento, contando solo las dosis efectivamente marcadas.</p>';
+    rows.forEach(r=>{
+      const d=document.createElement('div'); d.className='hcard';
+      d.innerHTML='<div class="h-top"><span class="h-name">'+escapeHtml(r.nombre)+'</span>'+
+        '<span class="h-dose">'+escapeHtml(r.dosis)+'</span></div>'+
+        '<div class="h-meta">'+
+          '<span class="hchip child">'+escapeHtml(r.nino)+'</span>'+
+          '<span class="hchip">'+r.mes+'</span>'+
+          '<span class="hchip days">'+r.dias+(r.dias===1?' día':' días')+'</span>'+
+          '<span class="hchip">'+r.n+(r.n===1?' dosis':' dosis')+'</span>'+
+        '</div>';
+      el.appendChild(d);
+    });
+  }
+  $('#sheetHist').classList.add('open');
+}
+$('#btnHist').onclick=openHistory;
+$('#histClose').onclick=()=>$('#sheetHist').classList.remove('open');
 
 /* ---------- Instalación (PWA) ---------- */
 let deferredPrompt=null;
